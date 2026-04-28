@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HuBEL: Weather File Generator</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-brand">🌆 HuBEL: Weather File Generator</div>
+        <div class="nav-right">
+            <span class="nav-user">👤 {{ user }}</span>
+            <a href="/logout" class="btn-logout">Logout</a>
+        </div>
+    </nav>
+
+    <div class="main-container">
+        <!-- Sidebar progress -->
+        <aside class="sidebar">
+            <h3>Sections</h3>
+            <ul class="section-nav">
+                <li><a href="#sec-epw" class="active">1. EPW File</a></li>
+                <li><a href="#sec-urban">2. Urban Characteristics</a></li>
+                <li><a href="#sec-zone">3. Climate Zone</a></li>
+                <li><a href="#sec-veg">4. Vegetation</a></li>
+                <li><a href="#sec-traffic">5. Traffic Schedule</a></li>
+                <li><a href="#sec-bld">6. Building Stock</a></li>
+                <li><a href="#sec-opt">7. Optional Urban</a></li>
+                <li><a href="#sec-sim">8. Simulation Control</a></li>
+                <li><a href="#sec-hvac">9. HVAC & Internal</a></li>
+                <li><a href="#sec-climate">10. Urban Climate</a></li>
+            </ul>
+        </aside>
+
+        <div class="content">
+            <form id="uwgForm" enctype="multipart/form-data">
+
+                <!-- 1. EPW Upload -->
+                <section id="sec-epw" class="form-section">
+                    <h2>1. EPW Weather File</h2>
+                    <p class="section-desc">Upload the base EPW weather file to be refined.</p>
+                    <div class="upload-zone" id="dropZone">
+                        <div class="upload-icon">📁</div>
+                        <p>Drag & drop your .epw file here or <label for="epwFile" class="upload-link">browse</label></p>
+                        <input type="file" id="epwFile" name="epw_file" accept=".epw" required hidden>
+                        <p class="file-name" id="epwFileName"></p>
+                    </div>
+                </section>
+
+                <!-- 2. Urban Characteristics -->
+                <section id="sec-urban" class="form-section">
+                    <h2>2. Urban Characteristics</h2>
+                    <p class="section-desc">Define the morphological and thermal properties of the urban area.</p>
+                    <div class="param-grid">
+                        <div class="param-card">
+                            <label>Average Building Height (m)</label>
+                            <input type="number" name="uc_bldHeight" value="10" step="0.1" min="0">
+                            <span class="hint">Avg. height of buildings in the area</span>
+                        </div>
+                        <div class="param-card">
+                            <label>Building Plan Density (0-1)</label>
+                            <input type="number" name="uc_bldDensity" value="0.5" step="0.01" min="0" max="1">
+                            <span class="hint">Ratio of building footprint to total area</span>
+                        </div>
+                        <div class="param-card">
+                            <label>Vertical to Horizontal Ratio</label>
+                            <input type="number" name="uc_verToHor" value="0.8" step="0.01" min="0">
+                            <span class="hint">Urban area facade-to-site ratio</span>
+                        </div>
+                        <div class="param-card">
+                            <label>HVAC Waste Heat to Canyon (0-1)</label>
+                            <input type="number" name="uc_h_mix" value="1" step="0.01" min="0" max="1">
+                            <span class="hint">Fraction of HVAC heat to street vs. roof</span>
+                        </div>
+                        <div class="param-card">
+                            <label>Characteristic Length (m)</label>
+                            <input type="number" name="uc_charLength" value="1000" step="1" min="0">
+                            <span class="hint">Side of square encompassing neighborhood</span>
+                        </div>
+                        <div class="param-card">
+                            <label>Road Albedo (0-1)</label>
+                            <input type="number" name="uc_albRoad" value="0.1" step="0.01" min="0" max="1">
+                            <span class="hint">Reflectivity of road surface</span>
+                        </div>
+                        <div class="param-card">
+                            <label>Road Thickness (m)</label>
+                            <input type="number" name="uc_dRoad" value="0.5" step="0.01" min="0">
+                            <span class="hint">Pavement thickness</span>
+                        </div>
+                        <div class="param-card">
+                            <label>Road Conductivity (W/m·K)</label>
+                            <input type="number" name="uc_kRoad" value="1" step="0.01" min="0">
+                            <span class="hint">Thermal conductivity of pavement</span>
+                        </div>
+                        <div class="param-card">
+                            <label>Road Heat Capacity (J/m³·K)</label>
+                            <input type="number" name="uc_cRoad" value="1600000" step="1000" min="0">
+                            <span class="hint">Volumetric heat capacity of pavement</span>
+                        </div>
+                        <div class="param-card">
+                            <label>Sensible Anthropogenic Heat (W/m²)</label>
+                            <input type="number" name="uc_sensAnth" value="20" step="0.1" min="0">
+                            <span class="hint">Heat from cars, pedestrians, etc.</span>
+                        </div>
+                        <div class="param-card">
+                            <label>Latent Anthropogenic Heat (W/m²)</label>
+                            <input type="number" name="uc_latAnth" value="2" step="0.1" min="0">
+                            <span class="hint">Non-building latent heat (not currently used)</span>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 3. Climate Zone -->
+                <section id="sec-zone" class="form-section">
+                    <h2>3. Climate Zone</h2>
+                    <p class="section-desc">Select the ASHRAE climate zone that best matches the project location.</p>
+                    <div class="param-grid">
+                        <div class="param-card wide">
+                            <label>Climate Zone</label>
+                            <select name="zone">
+                                <option value="1A">1 — 1A (Hot-Humid)</option>
+                                <option value="2A">2 — 2A (Hot-Humid)</option>
+                                <option value="2B">3 — 2B (Hot-Dry)</option>
+                                <option value="3A">4 — 3A (Warm-Humid)</option>
+                                <option value="3B-CA">5 — 3B-CA (Warm-Dry)</option>
+                                <option value="3B">6 — 3B (Warm-Dry)</option>
+                                <option value="3C">7 — 3C (Warm-Marine)</option>
+                                <option value="4A">8 — 4A (Mixed-Humid)</option>
+                                <option value="4B">9 — 4B (Mixed-Dry)</option>
+                                <option value="4C">10 — 4C (Mixed-Marine)</option>
+                                <option value="5A">11 — 5A (Cool-Humid)</option>
+                                <option value="5B">12 — 5B (Cool-Dry)</option>
+                                <option value="13">13 — 6A (Cold-Humid)</option>
+                                <option value="14">14 — 6B (Cold-Dry)</option>
+                                <option value="15">15 — 7 (Very Cold)</option>
+                                <option value="16">16 — 8 (Subarctic)</option>
+                            </select>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 4. Vegetation -->
+                <section id="sec-veg" class="form-section">
+                    <h2>4. Vegetation Parameters</h2>
+                    <p class="section-desc">Define vegetation coverage and evapotranspiration properties.</p>
+                    <div class="param-grid">
+                        <div class="param-card">
+                            <label>Ground Vegetation Cover (0-1)</label>
+                            <input type="number" name="veg_vegCover" value="0.2" step="0.01" min="0" max="1">
+                            <span class="hint">Grass/shrub fraction of urban ground</span>
+                        </div>
+                        <div class="param-card">
+                            <label>Tree Coverage (0-1)</label>
+                            <input type="number" name="veg_treeCoverage" value="0.1" step="0.01" min="0" max="1">
+                            <span class="hint">Tree canopy fraction of urban ground</span>
+                        </div>
+                        <div class="param-card">
+                            <label>Vegetation Start Month (1-12)</label>
+                            <input type="number" name="veg_vegStart" value="4" step="1" min="1" max="12">
+                            <span class="hint">Month leaves come out</span>
+                        </div>
+                        <div class="param-card">
+                            <label>Vegetation End Month (1-12)</label>
+                            <input type="number" name="veg_vegEnd" value="10" step="1" min="1" max="12">
+                            <span class="hint">Month leaves fall</span>
+                        </div>
+                        <div class="param-card">
+                            <label>Vegetation Albedo</label>
+                            <input type="number" name="veg_albVeg" value="0.25" step="0.01" min="0" max="1">
+                            <span class="hint">Reflectivity of vegetation</span>
+                        </div>
+                        <div class="param-card">
+                            <label>Grass Latent Fraction</label>
+                            <input type="number" name="veg_latGrss" value="0.4" step="0.01" min="0" max="1">
+                            <span class="hint">Fraction of grass heat that is latent</span>
+                        </div>
+                        <div class="param-card">
+                            <label>Tree Latent Fraction</label>
+                            <input type="number" name="veg_latTree" value="0.6" step="0.01" min="0" max="1">
+                            <span class="hint">Fraction of tree heat that is latent</span>
+                        </div>
+                        <div class="param-card">
+                            <label>Rural Vegetation Cover (0-1)</label>
+                            <input type="number" name="veg_rurVegCover" value="0.9" step="0.01" min="0" max="1">
+                            <span class="hint">Rural ground vegetation fraction</span>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 5. Traffic Schedule -->
+                <section id="sec-traffic" class="form-section">
+                    <h2>5. Traffic Schedule</h2>
+                    <p class="section-desc">24-hour traffic intensity profiles (0-1) for weekday, Saturday, and Sunday. Values are comma-separated.</p>
+                    <div class="traffic-grid">
+                        <div class="traffic-row">
+                            <label>Weekday (24 values)</label>
+                            <textarea name="traffic_weekday" rows="2">0.2,0.2,0.2,0.2,0.2,0.4,0.7,0.9,0.9,0.6,0.6,0.6,0.6,0.6,0.7,0.8,0.9,0.9,0.8,0.8,0.7,0.3,0.2,0.2</textarea>
+                        </div>
+                        <div class="traffic-row">
+                            <label>Saturday (24 values)</label>
+                            <textarea name="traffic_saturday" rows="2">0.2,0.2,0.2,0.2,0.2,0.3,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.6,0.7,0.7,0.7,0.7,0.5,0.4,0.3,0.2,0.2</textarea>
+                        </div>
+                        <div class="traffic-row">
+                            <label>Sunday (24 values)</label>
+                            <textarea name="traffic_sunday" rows="2">0.2,0.2,0.2,0.2,0.2,0.3,0.4,0.4,0.4,0.4,0.4,0.4,0.4,0.4,0.4,0.4,0.4,0.4,0.4,0.4,0.3,0.3,0.2,0.2</textarea>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 6. Building Stock -->
+                <section id="sec-bld" class="form-section">
+                    <h2>6. Building Stock Distribution</h2>
+                    <p class="section-desc">Fraction of each DOE building type by era. Each row has 3 values: Pre-1980s, 1980s–Present, New Construction. <strong>All values must sum to 1.0.</strong></p>
+                    <div class="bld-notice" id="bldSumNotice">Current sum: <span id="bldSum">0.00</span></div>
+                    <table class="bld-table">
+                        <thead>
+                            <tr><th>Building Type</th><th>Pre-1980s</th><th>1980s–Present</th><th>New</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>Full Service Restaurant</td><td><input type="number" class="bld-input" data-type="FullServiceRestaurant" data-era="0" value="0" step="0.01" min="0" max="1"></td><td><input type="number" class="bld-input" data-type="FullServiceRestaurant" data-era="1" value="0" step="0.01" min="0" max="1"></td><td><input type="number" class="bld-input" data-type="FullServiceRestaurant" data-era="2" value="0" step="0.01" min="0" max="1"></td></tr>
+                            <tr><td>Hospital</td><td><input type="number" class="bld-input" data-type="Hospital" data-era="0" value="0" step="0.01" min="0" max="1"></td><td><input type="number" class="bld-input" data-type="Hospital" data-era="1" value="0" step="0.01" min="0" max="1"></td><td><input type="number" class="bld-input" data-type="Hospital" data-era="2" value="0" step="0.01" min="0" max="1"></td></tr>
+                            <tr><td>Large Hotel</td><td><input type="number" class="bld-input" data-type="LargeHotel" data-era="0" value="0" step="0.01" min="0" max="1"></td><td><input type="number" class="bld-input" data-type="LargeHotel" data-era="1" value="0" step="0.01" min="0" max="1"></td><td><input type="number" class="bld-input" data-type="LargeHotel" data-era="2" value="0" step="0.01" min="0" max="1"></td></tr>
+                            <tr><td>Large Office</td><td><input type="number" class="bld-input" data-type="LargeOffice" data-era="0" value="0" step="0.01" min="0" max="1"></td><td><input type="number" class="bld-input" data-type="LargeOffice" data-era="1" value="0.4" step="0.01" min="0" max="1"></td><td><input type="number" class="bld-input" data-type="LargeOffice" data-era="2" value="0" step="0.01" min="0" max="1"></td></tr>
+                            <tr><td>Medium Office</td><td><input type="number" class="bld-input" data-type="MediumOffice" data-era="0" value="0" step="0.01" min="0" max="1"></td><td><input type="number" class="bld-input" data-type="MediumOffice" data-era="1" value="0" step="0.01" min="0" max="1"></td><td><input type="number" class="bld-input" data-type="MediumOffice" data-era="2" value="0" step="0.01" min="0" max="1"></td></tr>
+                            <tr><td>Mid-Rise Apartment</td><td><input type="number" class="bld-input" data-type="MidRiseApartment" data-era="0" value="0" step="0.01" min="0" max="1"></td><td><input type="number" class="bld-input" data-type="MidRiseApartment" data-era="1" value="0.6" step="0.01" min="0" max="1"></td><td><input type="number" class="bld-input" data-type="MidRiseApartment" data-era="2" value="0" step="0.01" min="0" max="1"></td></tr>
+                            <tr><td>Outpatient</td><td><input type="number" class="bld-input" data-type="OutPatient" data-era="0" value="0" step="0.01" min="0" max="1"></td><td><input type="number" class="bld-input" data-type="OutPatient" data-era="1" value="0" step="0.01" min="0" max="1"></td><td><input type="number" class="bld-input" data-type="OutPatient" data-era="2" value="0" step="0.01" min="0" max="1"></td></tr>
+                            <tr><td>Primary School</td><td><input type="number" class="bld-input" data-type="PrimarySchool" data-era="0" value="0" step="0.01" min="0" max="1"></td><td><input type="number" class="bld-input" data-type="PrimarySchool" data-era="1" value="0" step="0.01" min="0" max="1"></td><td><input type="number" class="bld-input" data-type="PrimarySchool" data-era="2" value="0" step="0.01" min="0" max="1"></td></tr>
+                            <tr><td>Quick Service Restaurant</td><td><input type="number" class="bld-input" data-type="QuickServiceRestaurant" data-era="0" value="0" step="0.01" min="0" max="1"></td><td><input type="number" class="bld-input" data-type="QuickServiceRestaurant" data-era="1" value="0" step="0.01" min="0" max="1"></td><td><input type="number" class="bld-input" data-type="QuickServiceRestaurant" data-era="2" value="0" step="0.01" min="0" max="1"></td></tr>
+                            <tr><td>Secondary School</td><td><input type="number" class="bld-input" data-type="SecondarySchool" data-era="0" value="0" step="0.01" min="0" max="1"></td><td><input type="number" class="bld-input" data-type="SecondarySchool" data-era="1" value="0" step="0.01" min="0" max="1"></td><td><input type="number" class="bld-input" data-type="SecondarySchool" data-era="2" value="0" step="0.01" min="0" max="1"></td></tr>
+                            <tr><td>Small Hotel</td><td><input type="number" class="bld-input" data-type="SmallHotel" data-era="0" value="0" step="0.01" min="0" max="1"></td><td><input type="number" class="bld-input" data-type="SmallHotel" data-era="1" value="0" step="0.01" min="0" max="1"></td><td><input type="number" class="bld-input" data-type="SmallHotel" data-era="2" value="0" step="0.01" min="0" max="1"></td></tr>
+                            <tr><td>Small Office</td><td><input type="number" class="bld-input" data-type="SmallOffice" data-era="0" value="0" step="0.01" min="0" max="1"></td><td><input type="number" class="bld-input" data-type="SmallOffice" data-era="1" value="0" step="0.01" min="0" max="1"></td><td><input type="number" class="bld-input" data-type="SmallOffice" data-era="2" value="0" step="0.01" min="0" max="1"></td></tr>
+                            <tr><td>Stand-alone Retail</td><td><input type="number" class="bld-input" data-type="Stand-aloneRetail" data-era="0" value="0" step="0.01" min="0" max="1"></td><td><input type="number" class="bld-input" data-type="Stand-aloneRetail" data-era="1" value="0" step="0.01" min="0" max="1"></td><td><input type="number" class="bld-input" data-type="Stand-aloneRetail" data-era="2" value="0" step="0.01" min="0" max="1"></td></tr>
+                            <tr><td>Strip Mall</td><td><input type="number" class="bld-input" data-type="StripMall" data-era="0" value="0" step="0.01" min="0" max="1"></td><td><input type="number" class="bld-input" data-type="StripMall" data-era="1" value="0" step="0.01" min="0" max="1"></td><td><input type="number" class="bld-input" data-type="StripMall" data-era="2" value="0" step="0.01" min="0" max="1"></td></tr>
+                            <tr><td>Supermarket</td><td><input type="number" class="bld-input" data-type="SuperMarket" data-era="0" value="0" step="0.01" min="0" max="1"></td><td><input type="number" class="bld-input" data-type="SuperMarket" data-era="1" value="0" step="0.01" min="0" max="1"></td><td><input type="number" class="bld-input" data-type="SuperMarket" data-era="2" value="0" step="0.01" min="0" max="1"></td></tr>
+                            <tr><td>Warehouse</td><td><input type="number" class="bld-input" data-type="Warehouse" data-era="0" value="0" step="0.01" min="0" max="1"></td><td><input type="number" class="bld-input" data-type="Warehouse" data-era="1" value="0" step="0.01" min="0" max="1"></td><td><input type="number" class="bld-input" data-type="Warehouse" data-era="2" value="0" step="0.01" min="0" max="1"></td></tr>
+                        </tbody>
+                    </table>
+                </section>
+
+                <!-- 7. Optional Urban -->
+                <section id="sec-opt" class="form-section">
+                    <h2>7. Optional Urban Parameters</h2>
+                    <p class="section-desc">Leave blank to use DOE Reference Building defaults.</p>
+                    <div class="param-grid">
+                        <div class="param-card">
+                            <label>Roof Albedo (0-1)</label>
+                            <input type="number" name="opt_albRoof" value="" step="0.01" min="0" max="1" placeholder="DOE default">
+                        </div>
+                        <div class="param-card">
+                            <label>Green Roof Fraction (0-1)</label>
+                            <input type="number" name="opt_vegRoof" value="" step="0.01" min="0" max="1" placeholder="DOE default">
+                        </div>
+                        <div class="param-card">
+                            <label>Glazing Ratio (0-1)</label>
+                            <input type="number" name="opt_glzR" value="" step="0.01" min="0" max="1" placeholder="DOE default">
+                        </div>
+                        <div class="param-card wide">
+                            <label>HVAC Type</label>
+                            <select name="opt_hvac">
+                                <option value="">DOE default</option>
+                                <option value="0">0 — Fully Conditioned (21°C–24°C)</option>
+                                <option value="1">1 — Mixed Mode Natural Ventilation (19°C–29°C)</option>
+                                <option value="2">2 — Unconditioned (windows open >22°C)</option>
+                            </select>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 8. Simulation Control -->
+                <section id="sec-sim" class="form-section">
+                    <h2>8. Simulation Control</h2>
+                    <p class="section-desc">Define the simulation period and time steps.</p>
+                    <div class="param-grid">
+                        <div class="param-card">
+                            <label>Start Month (1-12)</label>
+                            <input type="number" name="sim_Month" value="1" min="1" max="12">
+                        </div>
+                        <div class="param-card">
+                            <label>Start Day (1-31)</label>
+                            <input type="number" name="sim_Day" value="1" min="1" max="31">
+                        </div>
+                        <div class="param-card">
+                            <label>Number of Days</label>
+                            <input type="number" name="sim_nDay" value="31" min="1" max="365">
+                        </div>
+                        <div class="param-card">
+                            <label>Simulation Time Step (s)</label>
+                            <input type="number" name="sim_dtSim" value="300" min="60" max="3600">
+                        </div>
+                        <div class="param-card">
+                            <label>Weather Time Step (s)</label>
+                            <input type="number" name="sim_dtWeather" value="3600" min="300" max="7200">
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 9. HVAC & Internal Loads -->
+                <section id="sec-hvac" class="form-section">
+                    <h2>9. HVAC & Internal Loads</h2>
+                    <p class="section-desc">Configure HVAC system sizing and internal heat gain fractions.</p>
+                    <div class="param-grid">
+                        <div class="param-card">
+                            <label>Autosize HVAC</label>
+                            <select name="hvac_autosize">
+                                <option value="0">No</option>
+                                <option value="1">Yes</option>
+                            </select>
+                        </div>
+                        <div class="param-card">
+                            <label>Sensible Heat per Occupant (W)</label>
+                            <input type="number" name="hvac_sensOcc" value="100" min="0">
+                        </div>
+                        <div class="param-card">
+                            <label>Latent Heat Fraction (Occupant)</label>
+                            <input type="number" name="hvac_LatFOcc" value="0.3" step="0.01" min="0" max="1">
+                        </div>
+                        <div class="param-card">
+                            <label>Radiant Fraction (Occupant)</label>
+                            <input type="number" name="hvac_RadFOcc" value="0.2" step="0.01" min="0" max="1">
+                        </div>
+                        <div class="param-card">
+                            <label>Radiant Fraction (Equipment)</label>
+                            <input type="number" name="hvac_RadFEquip" value="0.5" step="0.01" min="0" max="1">
+                        </div>
+                        <div class="param-card">
+                            <label>Radiant Fraction (Lighting)</label>
+                            <input type="number" name="hvac_RadFLight" value="0.7" step="0.01" min="0" max="1">
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 10. Urban Climate -->
+                <section id="sec-climate" class="form-section">
+                    <h2>10. Urban Climate Parameters</h2>
+                    <p class="section-desc">Advanced parameters for the urban boundary layer model. Defaults are suitable for most cases.</p>
+                    <div class="param-grid">
+                        <div class="param-card">
+                            <label>UBL Height — Day (m)</label>
+                            <input type="number" name="clim_h_ubl1" value="1000" min="0">
+                        </div>
+                        <div class="param-card">
+                            <label>UBL Height — Night (m)</label>
+                            <input type="number" name="clim_h_ubl2" value="80" min="0">
+                        </div>
+                        <div class="param-card">
+                            <label>Inversion Height (m)</label>
+                            <input type="number" name="clim_h_ref" value="150" min="0">
+                        </div>
+                        <div class="param-card">
+                            <label>Temperature Measurement Height (m)</label>
+                            <input type="number" name="clim_h_temp" value="2" step="0.1" min="0">
+                        </div>
+                        <div class="param-card">
+                            <label>Wind Measurement Height (m)</label>
+                            <input type="number" name="clim_h_wind" value="10" min="0">
+                        </div>
+                        <div class="param-card">
+                            <label>Circulation Coefficient</label>
+                            <input type="number" name="clim_c_circ" value="1.2" step="0.01" min="0">
+                        </div>
+                        <div class="param-card">
+                            <label>Exchange Coefficient</label>
+                            <input type="number" name="clim_c_exch" value="1" step="0.01" min="0">
+                        </div>
+                        <div class="param-card">
+                            <label>Max Day Threshold (W/m²)</label>
+                            <input type="number" name="clim_maxDay" value="150" min="0">
+                        </div>
+                        <div class="param-card">
+                            <label>Max Night Threshold (W/m²)</label>
+                            <input type="number" name="clim_maxNight" value="20" min="0">
+                        </div>
+                        <div class="param-card">
+                            <label>Min Wind Speed (m/s)</label>
+                            <input type="number" name="clim_windMin" value="1" step="0.1" min="0">
+                        </div>
+                        <div class="param-card">
+                            <label>Rural Obstacle Height (m)</label>
+                            <input type="number" name="clim_h_obs" value="0.1" step="0.01" min="0">
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Submit -->
+                <div class="submit-section">
+                    <button type="submit" class="btn-run" id="btnRun">
+                        <span class="btn-text">🚀 Generate EPW</span>
+                        <span class="btn-loading" style="display:none;">⏳ Running simulation...</span>
+                    </button>
+                </div>
+            </form>
+
+            <!-- Result area -->
+            <div id="resultArea" class="result-area" style="display:none;">
+                <div id="resultSuccess" class="result-success" style="display:none;">
+                    <h3>✅ EPW Generation Complete</h3>
+                    <p>Your EPW file is ready for download.</p>
+                    <a id="downloadLink" href="#" class="btn-download">📥 Download EPW File Generated</a>
+                </div>
+                <div id="resultError" class="result-error" style="display:none;">
+                    <h3>❌ EPW Generation Failed</h3>
+                    <p id="errorMsg"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
